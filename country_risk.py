@@ -1,26 +1,19 @@
-import requests, pandas as pd, streamlit as st, pathlib
+import requests, pandas as pd, streamlit as st
 
-@st.cache_data(ttl=24*3600)                        # refresh once a day
+_API = (
+    "https://api.worldbank.org/v2/country/all/"
+    "indicator/PV.EST?format=json&per_page=20000"
+)
+
+@st.cache_data(ttl=24*3600)        # refresh once a day
 def fetch_country_risk():
-    url = (
-        "https://api.worldbank.org/v2/country/all/"
-        "indicator/PV.EST?format=json&per_page=20000"   # ← correct code
-    )
-    resp = requests.get(url, timeout=30)
-    if resp.status_code != 200:
-        st.warning("World Bank geo API error – using default 50")
+    try:
+        data = requests.get(_API, timeout=30).json()[1]          # rows list
+        df   = pd.DataFrame(data)
+        year = df["date"].max()                                  # latest year
+        df   = df[df["date"] == year][["countryiso3code", "value"]].dropna()
+        df["RiskGeo"] = (1 - (df["value"] + 2.5) / 5) * 100      # 0 → 100
+        return df.set_index("countryiso3code")["RiskGeo"]
+    except Exception as e:
+        st.warning(f"World-Bank geo fetch failed ({e}); default 50.")
         return pd.Series(dtype=float)
-
-    payload = resp.json()
-    if not isinstance(payload, list) or len(payload) < 2:
-        st.warning("World Bank geo payload unexpected – using default 50")
-        return pd.Series(dtype=float)
-
-    df = pd.DataFrame(payload[1])
-    df = (
-        df[df["date"] == df["date"].max()]
-          .loc[:, ["countryiso3code", "value"]]
-          .dropna()
-    )
-    df["RiskGeo"] = (1 - (df["value"] + 2.5) / 5) * 100
-    return df.set_index("countryiso3code")["RiskGeo"]
