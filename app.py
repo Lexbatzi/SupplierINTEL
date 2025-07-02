@@ -6,16 +6,16 @@ import plotly.express as px
 from gnews_fetch import gnews_articles
 from risk_score   import parse_entries, compute_scores
 
-from country_risk import fetch_country_risk
-from reg_risk     import fetch_reg_risk
-st.write("geo sample →", fetch_country_risk().head())
-st.write("reg sample →", fetch_reg_risk().head())
 # 0) -----  PAGE CONFIG  ---------------------------------------------
 st.set_page_config(page_title="Supplier Risk Monitor", page_icon="📈", layout="wide")
 
 st.title("📈 Supplier-Risk Sentiment Monitor")
 st.caption("Google-News headlines ➜ TextBlob sentiment + Geo + Regulatory ➜ Composite Risk Score")
 
+from country_risk import fetch_country_risk
+from reg_risk     import fetch_reg_risk
+st.write("geo sample →", fetch_country_risk().head())
+st.write("reg sample →", fetch_reg_risk().head())
 # 1) -----  SUPPLIER LIST SIDEBAR  -----------------------------------
 st.sidebar.header("🔧 Supplier list")
 
