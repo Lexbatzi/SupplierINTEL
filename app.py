@@ -90,7 +90,7 @@ fig_bar.update_layout(
 )
 st.plotly_chart(fig_bar, use_container_width=True)
 
-from map_utils import world_geo.csv
+from map_utils import world_geo_risk
 # ---- WORLD MAP ------------------------------------------------------
 st.subheader("🌍 Global Political-Stability Risk")
 
