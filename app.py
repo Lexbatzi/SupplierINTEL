@@ -1,41 +1,69 @@
-import streamlit as st, pandas as pd
-from gnews_fetch import gnews_articles
-from risk_score  import parse_entries, compute_scores
+# ---------- STREAMLIT FRONT-END -------------------------------------
+import streamlit as st
+import pandas as pd
+import plotly.express as px
 
-st.set_page_config(page_title="Supplier Risk Monitor", page_icon="📈")
+from gnews_fetch import gnews_articles
+from risk_score   import parse_entries, compute_scores
+
+# 0) -----  PAGE CONFIG  ---------------------------------------------
+st.set_page_config(page_title="Supplier Risk Monitor", page_icon="📈", layout="wide")
 
 st.title("📈 Supplier-Risk Sentiment Monitor")
-st.caption("Google-News headlines → TextBlob sentiment → % negative = Risk Score")
+st.caption("Google-News headlines ➜ TextBlob sentiment + Geo + Regulatory ➜ Composite Risk Score")
 
-# --- sidebar supplier upload ---
+# 1) -----  SUPPLIER LIST SIDEBAR  -----------------------------------
 st.sidebar.header("🔧 Supplier list")
-uploaded = st.sidebar.file_uploader("CSV with a 'supplier' column", type="csv")
+
+uploaded = st.sidebar.file_uploader("CSV with **supplier,country** (ISO-3) columns", type="csv")
 if uploaded:
-    suppliers = pd.read_csv(uploaded)["supplier"].dropna().tolist()
-    st.sidebar.success(f"{len(suppliers)} suppliers loaded from upload.")
+    supplier_df = pd.read_csv(uploaded)
+    st.sidebar.success(f"{len(supplier_df)} suppliers loaded from upload.")
 else:
-    suppliers = pd.read_csv("suppliers.csv")["supplier"].tolist()
-    st.sidebar.info(f"Using default list ({len(suppliers)} suppliers).")
+    supplier_df = pd.read_csv("suppliers.csv")     # repo default file
+    st.sidebar.info(f"Using default list ({len(supplier_df)} suppliers).")
+
+# defensive: ensure both required columns exist
+if "country" not in supplier_df.columns:
+    supplier_df["country"] = "UNK"
+
+suppliers = supplier_df["supplier"].tolist()
 
 days = st.sidebar.slider("Look-back window (days)", 30, 180, 90, 15)
 
-# --- fetch + analyse ---
-bar = st.progress(0)
+# 2) -----  FETCH & ANALYSE  -----------------------------------------
+bar  = st.progress(0, text="Fetching headlines…")
 rows = []
+
 for i, name in enumerate(suppliers, 1):
     rows += parse_entries(gnews_articles(name, days=days), name)
-    bar.progress(i / len(suppliers))
+    bar.progress(i / len(suppliers), text=f"Processed {i}/{len(suppliers)} suppliers")
 
-df = pd.DataFrame(rows)
-risk_df = compute_scores(df, suppliers)
+df_raw = pd.DataFrame(rows)
+risk_df = compute_scores(df_raw, supplier_df)
 
-# --- display ---
-st.subheader("Risk scores (%)")
-st.dataframe(risk_df, hide_index=True, height=250)
+# 3) -----  DISPLAY RESULTS  -----------------------------------------
+st.subheader("🔎 Composite Risk Scores (%)")
+st.dataframe(risk_df.style.format({"RiskScore": "{:.1f}"}), hide_index=True, height=350)
 
-st.subheader("Bar chart")
-st.bar_chart(risk_df, x="supplier", y="RiskScore")
+# color-coded bar chart
+fig = px.bar(
+    risk_df,
+    x="supplier",
+    y="RiskScore",
+    color="RiskScore",
+    color_continuous_scale=[(0, "green"), (0.3, "yellow"), (1, "red")],
+    range_color=(0, 100),
+    title=f"Risk breakdown – last {days} days",
+)
+fig.update_layout(coloraxis_showscale=False, xaxis_title=None, yaxis_title="Risk %")
+st.plotly_chart(fig, use_container_width=True)
 
-with st.expander("See raw headlines"):
-    st.dataframe(df.sort_values("date", ascending=False).reset_index(drop=True),
-                 hide_index=True, height=300)
+with st.expander("📰  Raw headlines"):
+    st.dataframe(
+        df_raw.sort_values("date", ascending=False).reset_index(drop=True),
+        hide_index=True,
+        height=300,
+    )
+
+st.toast("Done!  You can upload another CSV or adjust the slider to recalc.", icon="✅")
