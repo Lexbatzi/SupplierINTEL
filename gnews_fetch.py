@@ -1,3 +1,5 @@
+import requests, feedparser, datetime as dt   # ← NEW
+
 def gnews_articles(name: str, days: int = 90):
     """
     Return a Feedparser 'entries' list of headlines that mention `name`
