@@ -7,8 +7,9 @@ def fetch_country_risk():
     Falls back to empty Series on API error.
     """
     url = (
-        "https://api.worldbank.org/v2/country/all/"
-        "indicator/LP.PRV.POL.STAB?format=json"
+       "https://api.worldbank.org/v2/country/all/"
+       "indicator/PV.POL.STAB"            # correct indicator code
+       "?format=json&per_page=20000"      # <-- add per_page
     )
 
     try:
