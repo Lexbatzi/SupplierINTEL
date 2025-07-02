@@ -90,26 +90,35 @@ fig_bar.update_layout(
 )
 st.plotly_chart(fig_bar, use_container_width=True)
 
-# ---- WORLD MAP (below bar chart) ------------------------------------
-st.subheader("🌍 Country Risk Map (Geo pillar)")
+from map_utils import world_geo.csv
+# ---- WORLD MAP ------------------------------------------------------
+st.subheader("🌍 Global Political-Stability Risk")
 
-map_df = (
-    risk_df.groupby("country", as_index=False)["RiskGeo"]
-    .mean()
-    .rename(columns={"country": "iso3"})
-)
-
+world = world_geo_risk()   # ~240 countries from local CSV
 fig_map = px.choropleth(
-    map_df,
+    world,
     locations="iso3",
+    hover_name="country",
     color="RiskGeo",
-    color_continuous_scale=["green", "yellow", "red"],
+    color_continuous_scale=[
+        [0.0, "#1a9850"],
+        [0.3, "#fee08b"],
+        [1.0, "#d73027"],
+    ],
     range_color=(0, 100),
-    title="Higher % = less politically stable",
 )
-fig_map.update_layout(margin=dict(l=0, r=0, t=30, b=0))
+fig_map.update_geos(
+    showcountries=True, countrycolor="#444",
+    showcoastlines=False, showland=True, landcolor="#202328",
+    bgcolor="#0E1117",
+)
+fig_map.update_layout(
+    margin=dict(l=0, r=0, t=0, b=0),
+    coloraxis_colorbar=dict(title="Risk %"),
+    paper_bgcolor="#0E1117",
+    plot_bgcolor="#0E1117",
+)
 st.plotly_chart(fig_map, use_container_width=True)
-
 # ----  RAW HEADLINES -------------------------------------------------
 with st.expander("📰  Raw headlines"):
     st.dataframe(
