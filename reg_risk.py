@@ -7,8 +7,9 @@ def fetch_reg_risk():
     Falls back to empty Series on error.
     """
     url = (
-        "https://api.worldbank.org/v2/country/all/"
-        "indicator/CC.REG.QUAL?format=json"
+       "https://api.worldbank.org/v2/country/all/"
+       "indicator/CC.REG.QUAL"
+       "?format=json&per_page=20000"      # <-- add per_page
     )
 
     try:
