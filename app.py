@@ -38,7 +38,16 @@ supplier_df["country"] = (
 suppliers = supplier_df["supplier"].tolist()
 
 days = st.sidebar.slider("Look-back window (days)", 30, 180, 90, 15)
+# ─── NEW: weight sliders ────────────────────────────────────────────
+alpha = st.sidebar.slider("Headline sentiment weight", 0.0, 1.0, 0.60, 0.05)
+beta  = st.sidebar.slider("Geo risk weight",            0.0, 1.0, 0.25, 0.05)
+gamma = 1.0 - alpha - beta          # remainder goes to regulatory
 
+st.sidebar.write(f"Reg risk weight is **{gamma:.2f}**")
+
+if gamma < 0:                       # safety guard
+    st.sidebar.error("Headline + Geo weights cannot exceed 1.0")
+    st.stop()
 # ---- FETCH & ANALYSE -----------------------------------------------
 bar  = st.progress(0, text="Fetching headlines…")
 rows = []
@@ -48,7 +57,7 @@ for i, name in enumerate(suppliers, 1):
     bar.progress(i / len(suppliers), text=f"Processed {i}/{len(suppliers)} suppliers")
 
 df_raw = pd.DataFrame(rows)
-risk_df = compute_scores(df_raw, supplier_df)
+risk_df = compute_scores(df_raw, supplier_df, alpha, beta, gamma)
 
 # ---- DISPLAY: HEADLINE TABLE ---------------------------------------
 st.subheader("🔎 Composite Risk Scores (%)")
