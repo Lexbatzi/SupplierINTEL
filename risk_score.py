@@ -1,3 +1,5 @@
+import pandas as pd
+
 from country_risk    import fetch_country_risk
 from reg_risk        import fetch_reg_risk      # ← NEW
 
